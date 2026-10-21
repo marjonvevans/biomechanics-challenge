@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Marjon Biomechanics Challenge</title>
+
+<style>
+
+:root{
+--navy:#003d50;
+--teal:#00857e;
+--blue:#0071bc;
+--berry:#8b3556;
+--light:#f7fbfd;
+--accent:#abd6d9;
+}
+
+body{
+font-family:Arial, sans-serif;
+background:var(--light);
+margin:0;
+padding:0;
+color:#1d1d1b;
+}
+
+.screen{
+max-width:1100px;
+margin:auto;
+padding:30px;
+}
+
+.card{
+background:white;
+padding:30px;
+border-radius:15px;
+box-shadow:0 5px 15px rgba(0,0,0,0.15);
+margin-top:20px;
+}
+
+h1{
+color:white;
+margin:0;
+}
+
+header{
+background:var(--navy);
+padding:25px;
+text-align:center;
+border-bottom:8px solid var(--teal);
+}
+
+input{
+padding:12px;
+width:300px;
+border-radius:8px;
+border:1px solid #ccc;
+font-size:16px;
+}
+
+button{
+cursor:pointer;
+border:none;
+padding:14px 22px;
+border-radius:10px;
+font-size:16px;
+font-weight:bold;
+}
+
+.start-btn{
+background:var(--teal);
+color:white;
+margin-top:20px;
+}
+
+.answer{
+display:block;
+width:100%;
+padding:18px;
+margin:10px 0;
+background:var(--blue);
+color:white;
+font-size:18px;
+border-radius:12px;
+text-align:left;
+}
+
+.answer:hover{
+background:var(--navy);
+}
+
+.progress-bar{
+height:18px;
+background:#ddd;
+border-radius:20px;
+overflow:hidden;
+margin-bottom:20px;
+}
+
+.progress{
+height:100%;
+width:0%;
+background:var(--teal);
+transition:.5s;
+}
+
+.timer{
+font-size:22px;
+font-weight:bold;
+color:var(--berry);
+margin-bottom:10px;
+}
+
+.question-image{
+max-width:100%;
+border-radius:12px;
+margin-bottom:20px;
+}
+
+.image-placeholder{
+height:250px;
+background:#eef7f8;
+border:3px dashed var(--accent);
+display:flex;
+align-items:center;
+justify-content:center;
+border-radius:15px;
+margin-bottom:20px;
+font-weight:bold;
+color:var(--navy);
+}
+
+.confidence{
+display:flex;
+gap:10px;
+margin-top:15px;
+}
+
+.confidence button{
+flex:1;
+}
+
+.green{background:#00857e;color:white;}
+.amber{background:#f0a500;color:white;}
+.red{background:#c0392b;color:white;}
+
+#result{
+display:none;
+text-align:center;
+}
+
+.score{
+font-size:48px;
+font-weight:bold;
+color:var(--teal);
+}
+
+.small{
+font-size:14px;
+color:#666;
+}
+
+</style>
+
+</head>
+<body>
+
+<header>
+<h1>SESC02 Biomechanics Challenge</h1>
+<p style="color:white;">
+Can Your Team Think Like a Biomechanist?
+</p>
+</header>
+
+<div class="screen">
+
+<div id="startScreen" class="card">
+
+<h2>Team Registration</h2>
+
+<input id="teamName" placeholder="Enter team name">
+
+<br>
+
+<button class="start-btn" onclick="startQuiz()">
+Start Challenge
+</button>
+
+</div>
+
+<div id="quizScreen" style="display:none;">
+
+<div class="card">
+
+<div class="progress-bar">
+<div class="progress" id="progress"></div>
+</div>
+
+<div class="timer">
+Time Remaining:
+<span id="timer">20</span>s
+</div>
+
+<h2 id="question"></h2>
+
+<div id="imageContainer"></div>
+
+<div id="answers"></div>
+
+<div class="confidence">
+
+<button class="green" onclick="setConfidence(2)">
+Very Sure
+</button>
+
+<button class="amber" onclick="setConfidence(1)">
+Somewhat Sure
+</button>
+
+<button class="red" onclick="setConfidence(0)">
+Guessing
+</button>
+
+</div>
+
+<p class="small">
+Bonus points awarded for correct answers with high confidence.
+</p>
+
+</div>
+
+</div>
+
+<div id="result" class="card">
+
+<h2>Challenge Complete</h2>
+
+<p>Team:</p>
+
+<h3 id="teamResult"></h3>
+
+<div class="score" id="finalScore"></div>
+
+<p id="feedback"></p>
+
+<button onclick="location.reload()">
+Play Again
+</button>
+
+</div>
+
+</div>
+
+<script>
+
+let current = 0;
+let score = 0;
+let confidence = 0;
+let countdown;
+let timeLeft = 20;
+let teamName = "";
+
+const questions = [
+
+{
+q:"An athlete performs a squat. Which plane is this movement primarily occurring in?",
+a:["Frontal","Transverse","Sagittal","Oblique"],
+correct:2
+},
+
+{
+q:"A gymnast performs a cartwheel. Which plane is involved?",
+a:["Frontal","Sagittal","Transverse","Oblique"],
+correct:0
+},
+
+{
+q:"Which movement occurs in the transverse plane?",
+a:["Hip Flexion","Knee Extension","Trunk Rotation","Ankle Dorsiflexion"],
+correct:2
+},
+
+{
+q:"A jumping jack occurs primarily in which plane?",
+a:["Frontal","Sagittal","Transverse","Oblique"],
+correct:0
+},
+
+{
+q:"Movement in the sagittal plane occurs about which axis?",
+a:["Transverse","Longitudinal","Vertical","Sagittal"],
+correct:0
+},
+
+{
+q:"A pirouette rotates around which axis?",
+a:["Longitudinal","Transverse","Sagittal","Oblique"],
+correct:0
+},
+
+{
+q:"A diver performing a somersault rotates around which axis?",
+a:["Longitudinal","Vertical","Transverse","Sagittal"],
+correct:2
+},
+
+{
+q:"A cartwheel rotates about which axis?",
+a:["Longitudinal","Sagittal","Transverse","Vertical"],
+correct:1
+},
+
+{
+q:"Most movements within the body use which class of lever?",
+a:["First","Second","Third","Fourth"],
+correct:2
+},
+
+{
+q:"Standing on tiptoes is which lever class?",
+a:["First","Second","Third","Fourth"],
+correct:1
+},
+
+{
+q:"A biceps curl is what class of lever?",
+a:["First","Second","Third","Fourth"],
+correct:2
+},
+
+{
+q:"What acts as the fulcrum during elbow flexion?",
+a:["Biceps","Weight","Elbow Joint","Radius"],
+correct:2
+},
+
+{
+q:"During squat ascent which muscle group acts as agonist?",
+a:["Hamstrings","Quadriceps","Gastrocnemius","Tibialis Anterior"],
+correct:1
+},
+
+{
+q:"What is the role of an antagonist?",
+a:["Creates movement","Assists movement","Opposes movement","Stabilises movement"],
+correct:2
+},
+
+{
+q:"During elbow flexion the antagonist is?",
+a:["Triceps","Deltoid","Latissimus","Brachialis"],
+correct:0
+},
+
+{
+q:"Identify the role of a synergist.",
+a:["Produces movement alone","Assists movement","Opposes movement","Stops movement"],
+correct:1
+},
+
+{
+q:"IMAGE QUESTION: Identify the ASIS.",
+a:["A","B","C","D"],
+correct:2,
+image:true
+},
+
+{
+q:"IMAGE QUESTION: Identify the Acromion Process.",
+a:["A","B","C","D"],
+correct:1,
+image:true
+},
+
+{
+q:"IMAGE QUESTION: Identify the Greater Trochanter.",
+a:["A","B","C","D"],
+correct:0,
+image:true
+},
+
+{
+q:"IMAGE QUESTION: Identify the Tibial Tuberosity.",
+a:["A","B","C","D"],
+correct:2,
+image:true
+}
+
+];
+
+function startQuiz(){
+
+teamName=document.getElementById("teamName").value;
+
+if(teamName===""){
+alert("Please enter a team name");
+return;
+}
+
+document.getElementById("startScreen").style.display="none";
+document.getElementById("quizScreen").style.display="block";
+
+loadQuestion();
+}
+
+function loadQuestion(){
+
+let q=questions[current];
+
+document.getElementById("question").innerText=q.q;
+
+let imageContainer=document.getElementById("imageContainer");
+
+if(q.image){
+imageContainer.innerHTML=
+`<div class="image-placeholder">
+Insert Diagram Here
+</div>`;
+}
+else{
+imageContainer.innerHTML="";
+}
+
+let html="";
+
+q.a.forEach((option,index)=>{
+
+html+=`
+<button class="answer"
+onclick="checkAnswer(${index})">
+${option}
+</button>`;
+});
+
+document.getElementById("answers").innerHTML=html;
+
+updateProgress();
+
+startTimer();
+}
+
+function setConfidence(value){
+confidence=value;
+}
+
+function checkAnswer(selected){
+
+clearInterval(countdown);
+
+if(selected===questions[current].correct){
+
+score++;
+
+score+=confidence;
+}
+
+current++;
+
+if(current<questions.length){
+loadQuestion();
+}
+else{
+finishQuiz();
+}
+}
+
+function startTimer(){
+
+timeLeft=20;
+
+document.getElementById("timer").innerText=timeLeft;
+
+countdown=setInterval(()=>{
+
+timeLeft--;
+
+document.getElementById("timer").innerText=timeLeft;
+
+if(timeLeft<=0){
+clearInterval(countdown);
+
+current++;
+
+if(current<questions.length){
+loadQuestion();
+}
+else{
+finishQuiz();
+}
+}
+
+},1000);
+
+}
+
+function updateProgress(){
+
+let progress=(current/questions.length)*100;
+
+document.getElementById("progress").style.width=
+progress+"%";
+
+}
+
+function finishQuiz(){
+
+document.getElementById("quizScreen").style.display="none";
+
+document.getElementById("result").style.display="block";
+
+document.getElementById("teamResult").innerText=teamName;
+
+document.getElementById("finalScore").innerText=
+score+" pts";
+
+let feedback="";
+
+if(score>30){
+feedback="Outstanding biomechanical knowledge!";
+}
+else if(score>20){
+feedback="Strong understanding. Ready for qualitative phase analysis.";
+}
+else{
+feedback="Good effort. Let's revisit the key concepts before moving on.";
+}
+
+document.getElementById("feedback").innerText=
+feedback;
+
+}
+
+</script>
+
+</body>
+</html>
